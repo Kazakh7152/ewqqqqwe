@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Взлом — Операция "Панцырь"</title>
+<style>
+  :root{
+    --bg:#0b0f0b;
+    --panel:#0f1a14;
+    --accent:#7fbf6f;
+    --danger:#d9534f;
+    --text:#dfeee2;
+    --muted:#9bb39b;
+    --glass: rgba(255,255,255,0.04);
+  }
+  *{box-sizing:border-box;font-family: "Courier New", monospace;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.9));
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+  }
+  .container{
+    width:100%;
+    max-width:980px;
+    border-radius:12px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    padding:20px;
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    gap:18px;
+  }
+  header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .title{display:flex;gap:12px;align-items:center;}
+  .logo{width:56px;height:56px;border-radius:8px;background:linear-gradient(135deg,var(--panel),#102217);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);box-shadow: inset 0 -4px 12px rgba(0,0,0,0.6), 0 4px 10px rgba(0,0,0,0.6);}
+  h1{font-size:18px;margin:0}
+  .sub{color:var(--muted);font-size:12px}
+  .panel{background:var(--panel);border-radius:10px;padding:14px;box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);}
+  .hack-area{display:flex;flex-direction:column;gap:12px}
+  .progress-wrap{padding:10px;border-radius:8px;background:linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));}
+  .bar{height:34px;background:var(--glass);border-radius:8px;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,0.03);}
+  .bar-inner{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#2a8b4a);display:flex;align-items:center;justify-content:flex-end;padding-right:10px;font-weight:700;transition:width 400ms linear;}
+  .log{height:240px;overflow:auto;padding:10px;border-radius:8px;background:#071009;color:var(--muted);font-size:13px;border:1px solid rgba(255,255,255,0.02);}
+  .controls{display:flex;gap:8px;align-items:center}
+  button{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;color:var(--text);cursor:pointer;}
+  button.primary{background:linear-gradient(90deg,var(--accent),#2a8b4a);border:none;color:#061102;font-weight:700;}
+  .side{display:flex;flex-direction:column;gap:12px}
+  .meta{display:flex;flex-direction:column;gap:6px}
+  .stat{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
+  .receiver{padding:12px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.06));border:1px solid rgba(255,255,255,0.02);}
+  .big{font-size:18px;color:var(--accent);font-weight:700}
+  .modal-back{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal{width:560px;border-radius:12px;padding:16px;background:linear-gradient(180deg,#0c120c,#07100a);box-shadow:0 10px 40px rgba(0,0,0,0.8);border:1px solid rgba(255,255,255,0.04);}
+  .q-title{font-size:16px;margin:0 0 6px 0;color:var(--text)}
+  .timer{font-weight:700;color:var(--danger);float:right}
+  .answers{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .answer-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:10px;border-radius:8px;text-align:left;cursor:pointer}
+  .footer-note{font-size:12px;color:var(--muted);margin-top:8px}
+  .final{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:linear-gradient(180deg, rgba(0,0,0,0.9), rgba(0,0,0,0.95));z-index:60;color:var(--text);padding:30px;text-align:center;}
+  .final-card{background:#07130e;padding:24px;border-radius:12px;max-width:720px;border:1px solid rgba(255,255,255,0.03)}
+  .final h2{color:var(--danger);margin-top:0}
+  footer{grid-column:1/-1;text-align:center;color:var(--muted);font-size:12px;margin-top:6px}
+  @media(max-width:900px){.container{grid-template-columns:1fr; padding:12px}.side{order:2}}
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="title">
+        <div class="logo">GF2</div>
+        <div>
+          <h1>Операция: "Сканер Адьютанта"</h1>
+          <div class="sub">Военно-тактический интерфейс — симуляция взлома</div>
+        </div>
+      </div>
+      <div class="sub">Статус: <span id="statusText">Ожидание</span></div>
+    </header>
+
+    <main class="hack-area">
+      <div class="panel progress-wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:13px;color:var(--muted)">Процесс взлома</div>
+          <div style="font-size:13px;color:var(--muted)">Целевой приёмник: <strong>Панцырь</strong></div>
+        </div>
+        <div class="bar">
+          <div class="bar-inner" id="barInner">0%</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;color:var(--muted);font-size:13px">
+          <div>Стабильность: <span id="stability">—</span></div>
+          <div>Следующий сбой в: <span id="nextFail">—</span>%</div>
+        </div>
+      </div>
+
+      <div class="panel log" id="log">
+        <div style="font-weight:700;color:var(--accent);margin-bottom:8px">Журнал</div>
+        <div id="logInner">Инициализация модулей...</div>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn" class="primary">Запустить взлом</button>
+        <button id="stopBtn">Пауза</button>
+        <button id="forceFail">Принудительный сбой (отладка)</button>
+        <div style="flex:1"></div>
+        <div style="color:var(--muted);font-size:13px">Текущая цель: <strong>Приёмник "Панцырь"</strong></div>
+      </div>
+    </main>
+
+    <aside class="side">
+      <div class="panel meta">
+        <div class="stat"><div>Узел</div><div class="muted">Alpha-07</div></div>
+        <div class="stat"><div>Оператор</div><div class="muted">—/—</div></div>
+        <div class="stat"><div>Состояние</div><div id="stateSmall" class="muted">Ожидание</div></div>
+      </div>
+
+      <div class="panel receiver">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;color:var(--muted)">Приёмник:</div>
+            <div class="big">Панцырь</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px;color:var(--muted)">Режим</div>
+            <div style="font-weight:700;color:#b5b5b5">Тёмная трансляция</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;color:var(--muted);font-size:13px">
+          При достижении 100% будет активирована регистрация приёмника и показано сообщение о тактическом протоколе. (Художественная выдумка).
+        </div>
+      </div>
+
+      <div class="panel">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Параметры</div>
+        <div class="stat"><div>Текущий прогресс</div><div id="statProgress">0%</div></div>
+        <div class="stat"><div>Стабильность</div><div id="statStable">—</div></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px">Лог со всех модулей будет записан справа.</div>
+      </div>
+    </aside>
+
+    <footer>Демо-симуляция. Любое упоминание планов — художественный вымысел.</footer>
+  </div>
+
+  <!-- Modal: Puzzle -->
+  <div class="modal-back" id="modalBack">
+    <div class="modal">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h3 class="q-title" id="qTitle">Задачка</h3>
+        <div class="timer" id="timer">10</div>
+      </div>
+      <div style="color:var(--muted);font-size:13px" id="qHint">Подсказка</div>
+      <div class="answers" id="answers"></div>
+      <div class="footer-note">Если не успеешь — система откатит прогресс автоматически.</div>
+    </div>
+  </div>
+
+  <!-- Final overlay -->
+  <div class="final" id="final">
+    <div class="final-card">
+      <h2>Приёмник «Панцырь» активирован</h2>
+      <p>Регистрация завершена. Система передаёт сводку целевого протокола.</p>
+      <p style="text-align:left;line-height:1.5;color:var(--muted);margin-top:12px">
+        <strong>Краткая сводка (художественно):</strong><br>
+        Приёмник «Панцырь» — резервный комплекс. В случае гибели главного Адьютанта запускается архивный протокол "Новая Эра".
+        Протокол направлен на радикальную перестройку: форсированное восстановление "баланса" любыми средствами. Внутри сети фигурирует имя "Оперативник Девятый" — марионетка, через которую осуществлялась скрытая ретрансляция цифровых команд.
+      </p>
+      <p style="margin-top:12px;color:var(--danger);font-weight:700">Это вымышленная история. Ни при каких обстоятельствах не применяйте или не моделируйте реальные вредоносные действия.</p>
+      <div style="margin-top:14px"><button id="finalClose" class="primary">Завершить опыт</button></div>
+    </div>
+  </div>
+
+<script>
+/* Исправленная логика:
+   - Файнальные данные о "Панцыре" показываются только при достижении 100%.
+   - Сбои (модал) не могут сами показать финал.
+   - Явная фиксация progress = 100 перед показом финала.
+*/
+
+const barInner = document.getElementById('barInner');
+const logInner = document.getElementById('logInner');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const forceFailBtn = document.getElementById('forceFail');
+const statusText = document.getElementById('statusText');
+const statProgress = document.getElementById('statProgress');
+const stateSmall = document.getElementById('stateSmall');
+const nextFailEl = document.getElementById('nextFail');
+const stabilityEl = document.getElementById('stability');
+const statStable = document.getElementById('statStable');
+
+let progress = 0;
+let running = false;
+let intervalId = null;
+let failAt = pickFailPercent();
+let stable = 80;
+let finalShown = false;
+
+stabilityEl.textContent = stable + '%';
+statStable.textContent = stable + '%';
+nextFailEl.textContent = failAt;
+
+function log(s){
+  const t = new Date().toLocaleTimeString();
+  logInner.innerHTML = `<div style="margin-bottom:6px"><span style="color:#7fbf6f">[${t}]</span> ${s}</div>` + logInner.innerHTML;
+}
+
+function pickFailPercent(){
+  // рандомный процент для сбоя: между 15 и 92
+  return Math.floor(Math.random() * 78) + 15;
+}
+
+function updateUI(){
+  // ограничиваем до 100
+  if(progress > 100) progress = 100;
+  barInner.style.width = progress + '%';
+  barInner.textContent = Math.floor(progress) + '%';
+  statProgress.textContent = Math.floor(progress) + '%';
+  statusText.textContent = running ? 'Активен' : 'Остановлен';
+  stateSmall.textContent = running ? 'Выполнение' : 'Пауза';
+  nextFailEl.textContent = failAt;
+}
+
+function start(){
+  if(running) return;
+  if(finalShown){
+    // если финал показывали — сброс
+    progress = 0;
+    finalShown = false;
+    log('Сброс после финала. Можно запускать заново.');
+  }
+  running = true;
+  statusText.textContent = 'Активен';
+  log('Запуск процесса взлома...');
+  if(intervalId) clearInterval(intervalId);
+  intervalId = setInterval(tick, 800);
+}
+
+function stop(){
+  running = false;
+  statusText.textContent = 'Пауза';
+  if(intervalId) clearInterval(intervalId);
+  intervalId = null;
+  log('Процесс приостановлен.');
+}
+
+function tick(){
+  if(!running) return;
+  // если уже достигли 100 — ничего не делать
+  if(progress >= 100){
+    progress = 100;
+    updateUI();
+    return;
+  }
+  // прогресс растёт
+  const inc = (Math.random() * 3.2) + (stable / 140);
+  progress = Math.min(100, progress + inc);
+  updateUI();
+
+  // если дошли до 100 — покажем финал (только здесь)
+  if(progress >= 100 && !finalShown){
+    progress = 100;
+    updateUI();
+    setTimeout(()=>{ completeSequence(); }, 600); // небольшая пауза для плавности
+    return;
+  }
+
+  // сбой: только если мы ещё не на 100 и случай совпал
+  if(progress >= failAt && progress < 100){
+    // показываем сбой (модал) — это не может вызвать финал
+    triggerFailure();
+  }
+}
+
+function triggerFailure(){
+  // остановим процесс, покажем модал с задачей
+  if(!running) return;
+  stop();
+  log('Сбой: обнаружена внешняя помеха. Требуется проверка безопасности...');
+  showQuestionModal();
+}
+
+function reduceProgressOnFail(){
+  const drop = Math.floor(Math.random() * 26) + 8;
+  progress = Math.max(0, progress - drop);
+  log(`Сбой не устранен — прогресс откатился на ${drop}% (до ${Math.floor(progress)}%).`);
+  failAt = pickFailPercent();
+  updateUI();
+  setTimeout(()=> start(), 1200);
+}
+
+function resumeAfterSuccess(){
+  log('Ответ верный — обход уязвимости выполнен. Продолжаем взлом.');
+  stable = Math.min(96, stable + 3);
+  stabilityEl.textContent = stable + '%';
+  statStable.textContent = stable + '%';
+  failAt = pickFailPercent();
+  updateUI();
+  setTimeout(()=> start(), 700);
+}
+
+/* --- Викторина --- */
+const modalBack = document.getElementById('modalBack');
+const qTitle = document.getElementById('qTitle');
+const qHint = document.getElementById('qHint');
+const answersWrap = document.getElementById('answers');
+const timerEl = document.getElementById('timer');
+
+const puzzles = [
+  {q:'Сколько будет 7 + 6?', a:['12','13','14','11'], correct:1, hint:'Простая арифметика'},
+  {q:'Какое слово лишнее: кот, пес, дерево, мышь?', a:['кот','пес','дерево','мышь'], correct:2, hint:'Одно не животное'},
+  {q:'Заверши ряд: 2,4,6,?', a:['7','8','9','6'], correct:1, hint:'Чётные числа'},
+  {q:'Если у тебя 5 яблок и ты дал 2, сколько осталось?', a:['2','3','4','5'], correct:1, hint:'Выдача уменьшает количество'},
+  {q:'Какой цвет смесь синего и желтого?', a:['Красный','Фиолетовый','Зеленый','Оранжевый'], correct:2, hint:'Основные цвета'},
+];
+
+let currentTimer = null;
+let timeLeft = 10;
+let currentPuzzle = null;
+
+function showQuestionModal(){
+  currentPuzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
+  qTitle.textContent = currentPuzzle.q;
+  qHint.textContent = currentPuzzle.hint;
+  answersWrap.innerHTML = '';
+  currentPuzzle.a.forEach((ans, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.textContent = ans;
+    btn.addEventListener('click', ()=> handleAnswer(idx) );
+    answersWrap.appendChild(btn);
+  });
+  timeLeft = 10; timerEl.textContent = timeLeft;
+  modalBack.style.display = 'flex';
+  // старт таймера
+  if(currentTimer) clearInterval(currentTimer);
+  currentTimer = setInterval(()=>{
+    timeLeft--;
+    timerEl.textContent = timeLeft;
+    if(timeLeft <= 0){
+      clearInterval(currentTimer);
+      currentTimer = null;
+      modalBack.style.display = 'none';
+      log('Время вышло — ответ не получен.');
+      reduceProgressOnFail();
+    }
+  }, 1000);
+}
+
+function handleAnswer(idx){
+  if(currentTimer) clearInterval(currentTimer);
+  modalBack.style.display = 'none';
+  if(idx === currentPuzzle.correct){
+    log(`Ответ на задачку "${currentPuzzle.q}" — верный.`);
+    resumeAfterSuccess();
+  } else {
+    log(`Ответ неверный: "${currentPuzzle.a[idx]}".`);
+    reduceProgressOnFail();
+  }
+}
+
+/* --- Завершение --- */
+const final = document.getElementById('final');
+
+function completeSequence(){
+  // Показываем финал только если прогресс точно 100 (защита от преждевременных вызовов)
+  if(Math.floor(progress) < 100) return;
+  stop();
+  finalShown = true;
+  log('Прогресс достиг 100% — регистрация приёмника.');
+  final.style.display = 'flex';
+}
+
+/* --- Кнопки --- */
+startBtn.addEventListener('click', start);
+stopBtn.addEventListener('click', stop);
+forceFailBtn.addEventListener('click', ()=>{
+  if(running) {
+    log('Принудительный сбой вызван вручную.');
+    triggerFailure();
+  } else {
+    log('Принудительный сбой в состоянии паузы — устанавливаю новый шанс сбоя.');
+    failAt = pickFailPercent();
+    updateUI();
+  }
+});
+
+document.getElementById('finalClose').addEventListener('click', ()=>{
+  final.style.display = 'none';
+  // сбросим для нового запуска
+  progress = 0; stable = 80; failAt = pickFailPercent(); finalShown = false;
+  stabilityEl.textContent = stable + '%';
+  statStable.textContent = stable + '%';
+  updateUI();
+  log('Сеанс завершён. Можно начать заново.');
+});
+
+/* Инициализация UI */
+updateUI();
+log('Интерфейс готов. Нажмите "Запустить взлом".');
+</script>
+</body>
+</html>
